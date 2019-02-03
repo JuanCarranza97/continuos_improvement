@@ -1,0 +1,11 @@
+#!/usr/bin/expect -f
+
+set timeout -1
+
+spawn -noecho ./condicionales_1_sender.sh
+
+expect {
+    "*from*" { send -- "Mexico!!\n"}
+    "*age*"  { send -- "21 :c\n"}
+}
+expect eof

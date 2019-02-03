@@ -1,0 +1,15 @@
+#!/usr/bin/expect -f
+
+set timeout -1
+
+set my_name [lindex $argv 0]
+set my_age [lindex $argv 1]
+
+puts "Running script with name $my_name and age $my_age\n\n"
+
+spawn -noecho ./my_script.sh
+expect "Hi, What's your name??"
+send -- "$my_name\n"
+expect "What's your age??"
+send -- "$my_age\n"
+expect eof

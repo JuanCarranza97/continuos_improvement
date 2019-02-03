@@ -1,0 +1,11 @@
+#!/usr/bin/expect -f
+
+set timeout -1
+
+spawn -noecho ./my_script.sh
+
+expect "Hi, What's your name??"
+send -- "Juan\n"
+expect "What's your age??"
+send -- "21\n"
+expect eof
