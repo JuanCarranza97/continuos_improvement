@@ -1,0 +1,5 @@
+#!/usr/bin/expect -f
+
+set timeout -1
+spawn -noecho sudo fdisk /dev/sdb
+expect eof

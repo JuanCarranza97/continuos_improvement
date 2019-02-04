@@ -1,5 +1,4 @@
 #!/bin/bash
-
 commands=( "python python1.py"
            "python python2.py" )
 
@@ -48,7 +47,7 @@ while [ $running -eq 1 ]; do
                                 printf "    Killing --${commands[$j]}-- ..." | tee -a concurrency_$$.log
                                 kill ${pids[$j]} > /dev/null 2>&1
                                 end_time[$j]=`date '+%Y-%m-%d %H:%M:%S'`
-                                printf " killed at $DATE\n" | tee -a concurrency_$$.log
+                                printf "Killed at ${end_time[$j]}\n" | tee -a concurrency_$$.log
                                 finished=$((finished+1))
                                 pid_status[$j]="killed"
                              else
@@ -64,7 +63,7 @@ while [ $running -eq 1 ]; do
                 fi
             else
                 printf "\r"
-                echo "--${commands[$i]}-- pid(${pids[$i]}) finished correctly at ${end_time[$i]}" | tee -a concurrency_$$.log
+                echo "--${commands[$i]}-- pid(${pids[$i]}) Finished correctly at ${end_time[$i]}" | tee -a concurrency_$$.log
                 pid_status[$i]="correctly"
             fi
         fi
@@ -74,11 +73,11 @@ while [ $running -eq 1 ]; do
         printf "\n-------------------------------------Summary-------------------------------------\n" | tee -a concurrency_$$.log
         for i in ${!commands[@]}; do
             if [ "${pid_status[$i]}" == "killed" ]; then
-                echo "--${commands[$i]}--  was killed at ${end_time[$i]}" | tee -a concurrency_$$.log
+                echo "--${commands[$i]}-- Was killed at ${end_time[$i]}" | tee -a concurrency_$$.log
             elif [ "${pid_status[$i]}" == "correctly" ]; then
-                echo "--${commands[$i]}-- finished correctly at ${end_time[$i]}" | tee -a concurrency_$$.log
+                echo "--${commands[$i]}-- Finished correctly at ${end_time[$i]}" | tee -a concurrency_$$.log
             else
-                echo "--${commands[$i]}-- finished with error code ${error_codes[$i]} at ${end_time[$i]}" | tee -a concurrency_$$.log
+                echo "--${commands[$i]}-- Finished with error code ${error_codes[$i]} at ${end_time[$i]}" | tee -a concurrency_$$.log
             fi 
         done
         echo "---------------------------------------------------------------------------------" | tee -a concurrency_$$.log	
