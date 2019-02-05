@@ -1,0 +1,16 @@
+<concurrency_test>
+    <test>
+        <name>"Concurrency Base"</name>
+        <test_command>"run-stressplatform -t 08:00:00 -use sata,emmc,usb,nvme"</test_line>
+        <pre_test_command>"prepare_devices sata,emmc,usb,nvme"</pre_test_command>
+        <wait_time>"00:00:05"</wait_time>
+        <timeout>"08:30:00"</timeout>
+    </test>
+    <test>
+        <name>"Concurrency NAC"</name>
+        <test_command>"denver -t 01:00:00"</test_line>
+        <pre_test_command>"denver --prepare"</pre_test_command>
+        <wait_time>"00:00:00"</wait_time>
+        <timeout>"01:05:00"</timeout>
+    </test>
+</concurrency_test>
