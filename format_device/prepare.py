@@ -9,18 +9,16 @@ class storage_device():
     """This is the init function, when a new storage device is created,
         we need to specify  the device type and the kind of device that 
          we have mounted in our system"""
-    class partition():
-        def __init__(self,name
     def __init__(self,name,device_type):
         self.name=name
         self.device_type=device_type
         self.partitions=[]
-    
-    def update_partitions():
-        print("Search partition function")
-        if self.device_type == "sata" or "usb":
-            partition_pattern=re.compile(self.name+"\d{1,2}")
-            if 
+   # 
+   # def update_partitions():
+   #     print("Search partition function")
+   #     if self.device_type == "sata" or "usb":
+   #         partition_pattern=re.compile(self.name+"\d{1,2}")
+   #         if 
 def get_devices():
     lsblk=os.popen("lsblk").read().split("\n")
     sd_pattern=re.compile("sd[a-z]$")
@@ -30,7 +28,12 @@ def get_devices():
     for lsblk_line in lsblk:
         device_name=lsblk_line.split(" ")[0]
         if sd_pattern.match(device_name):
-            devices.append(storage_device(device_name,"sata"))
+            deviceType=os.popen("udevadm info --query=all --name="+device_name+" | grep ID_BUS").read().split("\n")[0].split("=")[1]
+            if deviceType == "ata":
+                devices.append(storage_device(device_name,"sata"))
+            if deviceType == "usb":
+                devices.append(storage_device(device_name,"usb"))
+
         elif nvme_pattern.match(device_name):
             devices.append(storage_device(device_name,"nvme"))
         elif emmc_pattern.match(device_name):
