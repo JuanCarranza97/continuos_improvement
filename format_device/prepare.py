@@ -28,6 +28,7 @@ class storage_device():
                 print("  -{} is mounted at {}".format(self.name,self.mountPoint))
             else:
                 print("  -{} is not mounted".format(self.name))
+
     """This is the init function, when a new storage device is created,
         we need to specify  the device type and the kind of device that 
          we have mounted in our system"""
@@ -68,6 +69,7 @@ class storage_device():
         print(" Partitions Number: {}".format(len(self.partitions)))
         for i in self.partitions:
             i.print_summary()
+    
 
 def get_devices():
     lsblk=os.popen("lsblk").read().split("\n")
