@@ -66,10 +66,19 @@ class Test():
                 
                 if self.returnCode == 0:
                     self.status="passed"
-                    print("Script --{}-- ends succesfully at {}".format(self.name,self.endDate))
+                    print("Script --{}-- end succesfully at {}".format(self.name,self.endDate))
                 else:
                     self.status="failed"
-                    print("Script --{}-- fails with error code {} at {}".format(self.name,self.returnCode,self.endDate))
+                    print("Script --{}-- failed with error code {} at {}".format(self.name,self.returnCode,self.endDate))
+
+    def kill_process(self):
+        self.update()
+        if self.status == "running":
+            self.process.kill()
+            self.endDate=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            self.endTime=time.time()
+            self.status = "killed"
+            print("Script --{}-- killed  at {}".format(self.name,self.endDate))
 
 def create_process(xml_data):
     concurrency_tests=[]
@@ -99,15 +108,22 @@ def all_passed(process):
             break
     return status
 
+def kill_remaining_process(process):
+    for i in process:
+        i.update()
+        if i.status == "running":
+            i.kill_process()
+
 concurrency_tests=create_process(xml_data)
 run_all(concurrency_tests)
 
 print("All scripts initialized ...\n")
 while(1):
     os.system("printf 'Running...{}\r'".format(loading_symbols[loading_counter]))
-    #print("\rRuning ... {}".format(loading_symbols[loading_counter]))
     for current_process in concurrency_tests:
         current_process.update()
+        if current_process.status == "failed":
+            kill_remaining_process(concurrency_tests)
 
     if  some_running(concurrency_tests):       
         loading_counter+=1
@@ -123,4 +139,3 @@ if all_passed(concurrency_tests):
 else:
     print("\nTest Failed!! :c")
     exit(1)
-   
