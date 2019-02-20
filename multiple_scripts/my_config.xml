@@ -2,19 +2,19 @@
 <concurrency_test>
     <test name="Concurrency Base 5 Cycles">
         <command_line>bash script1.sh 5</command_line>
-        <delay_time>00:00:30</delay_time>
+        <delay_time>00:00:20</delay_time>
         <estimated_time>08:00:00</estimated_time>
         <timeout>08:30:00</timeout>
     </test>
     <test name="Concurrency Base 10 Cycles">
         <command_line>bash script2.sh 10</command_line>
-        <delay_time>00:00:10</delay_time>
+        <delay_time>00:00:05</delay_time>
         <estimated_time>24:00:00</estimated_time>
         <timeout>24:30:00</timeout>
     </test>
     <test name="Concurrency Base 15 Cycles">
         <command_line>bash script3.sh 15</command_line>
-        <delay_time>00:00:10</delay_time>
+        <delay_time>00:00:00</delay_time>
         <estimated_time>24:00:00</estimated_time>
         <timeout>24:30:00</timeout>
     </test>

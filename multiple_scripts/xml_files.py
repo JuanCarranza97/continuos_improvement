@@ -25,17 +25,37 @@ except:
     print("Sorry, There is an error with your xml file :c")
     exit(1)
 
+def get_seconds(expression_time):
+    arguments=expression_time.split(":")
+    if len(arguments) == 3:
+        time=int(arguments[2]) #Initialize time variable with seconds
+        time+=(int(arguments[0])*3600) #Add hours converted to seconds in variable
+        time+=(int(arguments[1])*60) #Add Mins converted to seconds in variable
+        return time
+    else:
+        print("Entered expression time {} is not correct".format(expression_time))
+        exit(2)
+
+def get_time_expression(seconds_input):
+    seconds_input=int(seconds_input)
+    hours=(seconds_input/3600)
+    mins=(seconds_input%3600)/60
+    seconds=seconds_input-hours*3600-mins*60
+    expression="%02d:%02d:%02d" %(hours,mins,seconds)
+    return expression
 
 class Test():
     def __init__(self,xml_object,test_id):
         self.name=xml_object.attrib["name"]
         self.commandLine=xml_object.find("command_line").text
-        self.delayTime=xml_object.find("delay_time").text    
+        self.delayTime=get_seconds(xml_object.find("delay_time").text)    
         self.estimatedTime=xml_object.find("estimated_time").text 
         self.timeout=xml_object.find("timeout").text
         self.testID=test_id
         self.xtermLine="xterm -e '{} ; echo $? > returnCode_{}.log'".format(self.commandLine,self.testID)
         self.status="notRun"
+        self.endDate=0
+        self.initDate=0
 
     def print_data(self):
         print("{}{}{}".format("-"*20,self.name,"-"*20))
@@ -46,30 +66,53 @@ class Test():
         print("    TimeOut: {}".format(self.timeout))
         print("    XtermLine: {}".format(self.xtermLine))
 
-    def run_test(self):
-        self.process=subprocess.Popen(self.xtermLine,shell=True)
-        self.initDate=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    def run_test(self):        
         self.initTime=time.time()
         self.runningTime=0
-        print("  --{}-- started at {} with PID {}".format(self.name,self.initDate,self.process.pid))
-        self.status="running"
+        if self.delayTime == 0:
+            self.process=subprocess.Popen(self.xtermLine,shell=True)
+            self.initDate=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            print("  --{}-- started at {} with PID {}".format(self.name,self.initDate,self.process.pid))
+            self.status="running"
+        else:
+            print("  --{}-- will wait  {} seconds to init".format(self.name,self.delayTime))
+            self.status="waiting"
 
-    def update(self):
-        if self.status == "running":
+    def print_summary(self):
+        print("{}{}{}".format("-"*20,self.name,"-"*20))
+        print("    Command line: {}".format(self.commandLine)) 
+        print("    Delay time: {}".format(get_time_expression(self.delayTime)))
+        if self.status != "not run":
+            print("    Start Date: {}".format(self.initDate))
+            print("    End Date: {}".format(self.endDate))
+            print("    Time Running: {}".format(get_time_expression(int(self.runningTime))))
+        print("    Test status: {}".format(self.status.capitalize()))
+        
+
+    def update(self):        
+        if self.status=="waiting":
             self.runningTime=time.time() - self.initTime
+            if self.runningTime >= self.delayTime:
+                self.initTime=time.time()
+                self.runningTime=0
+                self.process=subprocess.Popen(self.xtermLine,shell=True)
+                self.initDate=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                print("  --{}-- started at {} with PID {}".format(self.name,self.initDate,self.process.pid))
+                self.status="running"
 
+        elif self.status == "running":   
+            self.runningTime=time.time() - self.initTime
             if self.process.poll() != None: #If process stop running
                 self.endDate=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                self.endTime=self.runningTime
                 self.returnCode=int(open("returnCode_{}.log".format(self.testID),"r").read()[0])
                 os.system("rm returnCode_{}.log -rf".format(self.testID))
                 
                 if self.returnCode == 0:
                     self.status="passed"
-                    print("Script --{}-- end succesfully at {}".format(self.name,self.endDate))
+                    print("  --{}-- end succesfully at {}".format(self.name,self.endDate))
                 else:
                     self.status="failed"
-                    print("Script --{}-- failed with error code {} at {}".format(self.name,self.returnCode,self.endDate))
+                    print("  --{}-- failed with error code {} at {}".format(self.name,self.returnCode,self.endDate))
 
     def kill_process(self):
         self.update()
@@ -78,7 +121,13 @@ class Test():
             self.endDate=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             self.endTime=time.time()
             self.status = "killed"
-            print("Script --{}-- killed  at {}".format(self.name,self.endDate))
+            print("  --{}-- killed  at {}".format(self.name,self.endDate))
+
+        elif self.status == "waiting":
+            self.status = "not run"
+            self.runningTime=0
+            print("  --{}-- killed  at {}".format(self.name,self.endDate))
+
 
 def create_process(xml_data):
     concurrency_tests=[]
@@ -89,13 +138,14 @@ def create_process(xml_data):
     return concurrency_tests
 
 def run_all(process):
+    print("\n{} Initializing Tests {}".format("*"*30,"*"*30))
     for current_process in process:
         current_process.run_test()
 
 def some_running(process):
     status=False
     for i in process:
-        if i.status == "running":
+        if i.status == "running" or i.status == "waiting":
             status=True
             break
     return status
@@ -111,13 +161,18 @@ def all_passed(process):
 def kill_remaining_process(process):
     for i in process:
         i.update()
-        if i.status == "running":
+        if i.status == "running" or i.status == "waiting":
             i.kill_process()
+
+def summary_process(process):
+    print("\n{} Test Summary {}".format("*"*30,"*"*30))
+    for i in process:
+        i.print_summary()
 
 concurrency_tests=create_process(xml_data)
 run_all(concurrency_tests)
 
-print("All scripts initialized ...\n")
+print("\n{} Monitoring {}".format("*"*30,"*"*30))
 while(1):
     os.system("printf 'Running...{}\r'".format(loading_symbols[loading_counter]))
     for current_process in concurrency_tests:
@@ -133,6 +188,7 @@ while(1):
         break
     time.sleep(.5)
 
+summary_process(concurrency_tests)
 if all_passed(concurrency_tests):
     print("\nTest ends succesfully :)")
     exit(0)
