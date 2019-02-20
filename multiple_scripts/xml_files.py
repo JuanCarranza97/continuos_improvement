@@ -75,7 +75,7 @@ class Test():
             print("  --{}-- started at {} with PID {}".format(self.name,self.initDate,self.process.pid))
             self.status="running"
         else:
-            print("  --{}-- will wait  {} seconds to init".format(self.name,self.delayTime))
+            print("  --{}-- will wait  {} to init".format(self.name,get_time_expression(self.delayTime)))
             self.status="waiting"
 
     def print_summary(self):
