@@ -6,6 +6,8 @@ from datetime import datetime
 version = "0.8.1"
 
 file_name="my_config.xml"
+log_name="concurrency_test{}.log".format(os.getpid())
+
 loading_symbols=["|","/","-","\\"]
 loading_counter=0
 
@@ -15,7 +17,11 @@ if __name__ == '__main__':
         current=input_argv.pop(0)
         if current == '-c':
             file_name=input_argv.pop(0)
-            print("File name is {}".format(file_name))
+        elif current == '-l':
+            log_name=input_argv.pop(0)
+            if not (len(log_name.split(".")) == 2):
+                log_name+=".log"
+
 
 base_path=os.path.dirname(os.path.realpath(__file__))
 xml_file=os.path.join(base_path,file_name)
@@ -28,6 +34,12 @@ except:
     exit(1)
 
 testName = xml_data.attrib["name"] #Getting the concurrency test name from xml
+
+
+def printlog(text):
+    global log_name
+    print(text)
+    os.system("echo '{}' >> {}".format(text,log_name))
 
 def get_seconds(expression_time):
     #---------------------------------------------------------------------------------------
@@ -64,16 +76,22 @@ def get_time_expression(seconds_input):
     return expression
 
 def initializing_concurrency(process,testName):
-    print("{}{}{}".format("-"*23,"-"*27,"-"*23))
-    print("{} Concurrency Multi Scripts V {} {}".format("-"*20,version,"-"*20))
-    print("{}{}{}".format("-"*23,"-"*27,"-"*23))
+    global file_name
+    global log_name 
+    printlog("{}{}{}".format("-"*23,"-"*27,"-"*23))
+    printlog("{} Concurrency Multi Scripts V {} {}".format("-"*20,version,"-"*20))
+    printlog("{}{}{}".format("-"*23,"-"*27,"-"*23))
     time.sleep(1)
-    print("\n\nTest Name: {}".format(testName))
-    print("Process to Run:")
+    printlog("\n\nTest Name: {}".format(testName))
+    printlog("XML File: {}".format(file_name))
+    printlog("Process PID: {}".format(os.getpid()))
+    printlog("Log File: {}".format(log_name))
+    printlog("Start Time: {}".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    printlog("Process to Run:")
     for i in process:
         i.print_data()
         time.sleep(1)
-    print("{}\n\n".format("-"*70))
+    printlog("{}\n\n".format("-"*70))
 
 
 class Test():
@@ -106,21 +124,20 @@ class Test():
         self.runningTime        = "Not Run"
 
     def print_data(self):
-        print("    {}{}{}".format("-"*20,self.name,"-"*20))
-        print("        Test ID: {}".format(self.testID))
-        print("        PreTest line: {}".format(self.preTestCommandLine))
-        print("        Command line: {}".format(self.commandLine)) 
-        print("        Delay time: {}".format(self.delayTime))
-        print("        Estimated time: {}".format(self.estimatedTime))
-        print("        TimeOut: {}".format(self.timeout))
+        printlog("    {}{}{}".format("-"*20,self.name,"-"*20))
+        printlog("        Test ID: {}".format(self.testID))
+        printlog("        PreTest line: {}".format(self.preTestCommandLine))
+        printlog("        Command line: {}".format(self.commandLine)) 
+        printlog("        Delay time: {}".format(self.delayTime))
+        printlog("        Estimated time: {}".format(self.estimatedTime))
+        printlog("        TimeOut: {}".format(self.timeout))
         #print("    XtermLine: {}".format(self.xtermLine))
 
     def run_pre_test(self):
         if self.preTestXterm == "NOTHING":
-            print("  --{}-- Pretest was not defined ".format(self.name))
+            printlog("  --{}-- Pretest was not defined ".format(self.name))
         else:
-            os.system("printf '  --{}-- Initializing pretest'".format(self.name))
-            
+            printlog("  --{}-- Initializing pretest".format(self.name))
             self.preTestProcess=subprocess.Popen(self.preTestXterm,shell=True)
 
             loading_counter=0
@@ -135,8 +152,8 @@ class Test():
             os.system("rm returnCode_pre{}.log -rf".format(self.testID))
             if self.preTestReturnCode != 0:
                 os.system("printf '\n'")
-                print("Error: Pretest of {} Failed with Error code {}".format(self.name,self.preTestReturnCode))
-                print("Test Failed!! :c")
+                printlog("Error: Pretest of {} Failed with Error code {}".format(self.name,self.preTestReturnCode))
+                printlog("Test Failed!! :c")
                 exit(1)
             else:
                 os.system("printf '\r  --{}-- Pretest end succesfully\n'".format(self.name))
@@ -148,18 +165,18 @@ class Test():
             if self.delayTime == 0:
                 self.process=subprocess.Popen(self.xtermLine,shell=True)
                 self.initDate=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                print("  --{}-- started at {} with PID {}".format(self.name,self.initDate,self.process.pid))
+                printlog("  --{}-- started at {} with PID {}".format(self.name,self.initDate,self.process.pid))
                 self.status="running"
             else:
-                print("  --{}-- will wait  {} to init".format(self.name,get_time_expression(self.delayTime)))
+                printlog("  --{}-- will wait  {} to init".format(self.name,get_time_expression(self.delayTime)))
                 self.status="waiting"
             return True
         else:
-            print("  --{}-- will run if all test ends succesfully ".format(self.name))
+            printlog("  --{}-- will run if all test ends succesfully ".format(self.name))
             return False
 
     def run_all_finished(self):
-        print("Running all finished {}".format(self.name))
+        printlog("  --Running all finished {}".format(self.name))
         self.process=subprocess.Popen(self.xtermLine,shell=True)
         self.initTime    = time.time()
         self.runningTime = 0
@@ -174,7 +191,7 @@ class Test():
                 loading_counter=0
             time.sleep(.5)
             self.runningTime=time.time() - self.initTime
-
+        os.system("printf '\r'")
         self.endDate = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.allFinishedReturnCode=int(open("returnCode_{}.log".format(self.testID),"r").read()[0])
         os.system("rm returnCode_{}.log -rf".format(self.testID))
@@ -182,28 +199,28 @@ class Test():
 
         if self.allFinishedReturnCode == 0:
             self.status="passed"
-            print("  --{}-- end succesfully at {}".format(self.name,self.endDate))
+            printlog("  --{}-- end succesfully at {}".format(self.name,self.endDate))
         else:
             self.status="failed"
-            print("  --{}-- failed with error code {} at {}".format(self.name,self.allFinishedReturnCode,self.endDate))
+            printlog("  --{}-- failed with error code {} at {}".format(self.name,self.allFinishedReturnCode,self.endDate))
 
 
 
 
     def print_summary(self):
-        print("{}{}{}".format("-"*20,self.name,"-"*20))
-        print("    Command line: {}".format(self.commandLine)) 
+        printlog("{}{}{}".format("-"*20,self.name,"-"*20))
+        printlog("    Command line: {}".format(self.commandLine)) 
 
         if not self.delayTime == "ALL_FINISHED":
-            print("    Delay time: {}".format(get_time_expression(self.delayTime)))
+            printlog("    Delay time: {}".format(get_time_expression(self.delayTime)))
         else:
-            print("    Delay time: {}".format(self.delayTime))
+            printlog("    Delay time: {}".format(self.delayTime))
 
         if self.status != "Not Run":
-            print("    Start Date: {}".format(self.initDate))
-            print("    End Date: {}".format(self.endDate))
-            print("    Time Running: {}".format(get_time_expression(int(self.runningTime))))
-        print("    Test status: {}".format(self.status.capitalize()))
+            printlog("    Start Date: {}".format(self.initDate))
+            printlog("    End Date: {}".format(self.endDate))
+            printlog("    Time Running: {}".format(get_time_expression(int(self.runningTime))))
+        printlog("    Test status: {}".format(self.status.capitalize()))
         
 
     def update(self):   
@@ -215,7 +232,7 @@ class Test():
                     self.runningTime=0
                     self.process=subprocess.Popen(self.xtermLine,shell=True)
                     self.initDate=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    print("  --{}-- started at {} with PID {}".format(self.name,self.initDate,self.process.pid))
+                    printlog("  --{}-- started at {} with PID {}".format(self.name,self.initDate,self.process.pid))
                     self.status="running"
 
             elif self.status == "running":   
@@ -227,10 +244,10 @@ class Test():
                     
                     if self.returnCode == 0:
                         self.status="passed"
-                        print("  --{}-- end succesfully at {}".format(self.name,self.endDate))
+                        printlog("  --{}-- end succesfully at {}".format(self.name,self.endDate))
                     else:
                         self.status="failed"
-                        print("  --{}-- failed with error code {} at {}".format(self.name,self.returnCode,self.endDate))
+                        printlog("  --{}-- failed with error code {} at {}".format(self.name,self.returnCode,self.endDate))
 
     def kill_process(self):
         self.update()
@@ -239,12 +256,12 @@ class Test():
             self.endDate=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             self.endTime=time.time()
             self.status = "killed"
-            print("  --{}-- killed  at {}".format(self.name,self.endDate))
+            printlog("  --{}-- killed  at {}".format(self.name,self.endDate))
 
         elif self.status == "waiting":
             self.status = "not run"
             self.runningTime=0
-            print("  --{}-- killed  at {}".format(self.name,self.endDate))
+            printlog("  --{}-- killed  at {}".format(self.name,self.endDate))
 
 
 def create_process(xml_data):
@@ -256,12 +273,12 @@ def create_process(xml_data):
     return concurrency_tests
 
 def run_all_pretest(process):
-    print("\n{} Running Pretests {}".format("*"*30,"*"*29))
+    printlog("\n{} Running Pretests {}".format("*"*30,"*"*29))
     for i in process:
         i.run_pre_test()
 
 def run_all(process):
-    print("\n{} Initializing Tests {}".format("*"*30,"*"*27))
+    printlog("\n{} Initializing Tests {}".format("*"*30,"*"*27))
     initialized=0
     for current_process in process:
         if current_process.run_test():
@@ -296,7 +313,7 @@ def kill_remaining_process(process):
             i.kill_process()
 
 def summary_process(process):
-    print("\n{} Test Summary {}".format("*"*30,"*"*30))
+    printlog("\n{} Test Summary {}".format("*"*30,"*"*30))
     for i in process:
         i.print_summary()
 
@@ -308,9 +325,9 @@ run_all_pretest(concurrency_tests)
 all_process = len(concurrency_tests)
 test_process_running = run_all(concurrency_tests)
 
-print(" ----{}/{} Process were initialized ----".format(test_process_running,all_process))
+printlog(" ----{}/{} Process were initialized ----".format(test_process_running,all_process))
 
-print("\n{} Monitoring {}".format("*"*32,"*"*33))
+printlog("\n{} Monitoring {}".format("*"*32,"*"*33))
 while(1):
     os.system("printf 'Running...{}\r'".format(loading_symbols[loading_counter]))
     for current_process in concurrency_tests:
@@ -328,15 +345,15 @@ while(1):
 
 
 if all_passed(concurrency_tests):
-    print("\n{} Running ALL TEST Finished test{} ".format("*"*30,"*"*30))
+    printlog("\n{} Running ALL TEST Finished test{} ".format("*"*23,"*"*23))
     for i in concurrency_tests:
         if i.delayTime == "ALL_FINISHED":
             i.run_all_finished()
 
 summary_process(concurrency_tests)
 if all_passed(concurrency_tests,True):
-    print("\nTest ends succesfully :)")
+    printlog("\nTest ends succesfully :)")
     exit(0)
 else:
-    print("\nTest Failed!! :c")
+    printlog("\nTest Failed!! :c")
     exit(1)
