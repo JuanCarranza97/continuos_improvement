@@ -6,4 +6,4 @@ for i in `eval echo {1..$1}`; do
     sleep .5
 done
 echo "Done script :c"
-exit 0
+exit 4
